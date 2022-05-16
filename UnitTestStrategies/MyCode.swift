@@ -51,12 +51,17 @@ extension Notification.Name {
     static let foo = Notification.Name("foo")
 }
 
+enum FileOperationResult {
+    case success
+    case failure
+}
+
 class FileLoader {
     
     var preloadedFiles: [String] = []
     
-    /// Load an array of files asynchronously
-    func preloadFiles(_ fileNames: [String], on: DispatchQueue) {
+    /// Similuates loading an array of files asynchronously on the specified dispatch queue
+    func loadFiles(fileNames: [String], on: DispatchQueue) {
         on.async {
             fileNames.forEach { fileName in
                 Thread.sleep(forTimeInterval: 1) //simulate a delay for the preload
@@ -65,12 +70,21 @@ class FileLoader {
         }
     }
     
+    /// Simulates loading a file
+    /// Posts a notification when file load is complete
     func loadFile(_ fileName: String) {
         
         DispatchQueue.global().async {
-            NotificationCenter.default.post(name: .fileLoaded, object: self, userInfo: ["successCode" : 1])
+            NotificationCenter.default.post(name: .fileLoaded, object: self, userInfo: ["successCode" : FileOperationResult.success])
         }
-        
+    }
+    
+    // Simulates loading an array of files with concurrency (iOS 13.0 and higher)
+    func loadFilesAsync(_ fileNames: [String]) async throws {
+        fileNames.forEach { fileName in
+            Thread.sleep(forTimeInterval: 1) //simulate a delay for the load
+            self.preloadedFiles.append(fileName)
+        }
     }
     
 }

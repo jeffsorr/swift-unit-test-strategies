@@ -15,6 +15,7 @@ import XCTest
 // With coverage enabled, XCode highlights in green the covered code in the right of each tested code file
 
 // General guidance:
+// All test functions must start with "test"
 // Keep tests small and easy to read, so that they can be maintained
 // Add comments re: what you are testing if not obvious
 
@@ -38,9 +39,9 @@ class MyCodeTests: XCTestCase {
         // 🎉 Unit testing is easy!
     }
     
-    // Incorrect: test an asynchronous function
+    // Incorrect strategy: test an asynchronous function
     // This test either "passes" (false positive) or crashes!
-    func BADtestMyReverseStringAsyncNoOp() {
+    func testMyReverseStringAsyncNoOp() {
         let _ = myReverseStringAsync("string") { completionString in
             XCTAssertEqual(completionString, "gnirt6656s22243444")
         }
@@ -80,6 +81,7 @@ class MyCodeTests: XCTestCase {
     /// This test will normally, but not always, crash.
     func testMyReverseStringAsyncEmpty() {
         let expectation = self.expectation(description: #function)
+        expectation.expectedFulfillmentCount = 1
         
         let _ = myReverseStringAsync("") { completionString in
             XCTAssertEqual(completionString, "")
@@ -139,20 +141,20 @@ class MyCodeTests: XCTestCase {
         wait(for: [statusExpectation, resultsExpectation], timeout: 0.1, enforceOrder: true)
     }
     
-    /// Testing an asynchronous operation without a completion block
+    /// Test asynchronous operations on a dispatch queue without a completion block
     func testPreloadFiles() {
-        let loader = FileLoader()
+        let fileLoader = FileLoader()
         let backgroundQueue = DispatchQueue(label: "FileLoaderTests")
         
-        loader.preloadFiles(["One", "Two", "Three"], on: backgroundQueue)
+        fileLoader.loadFiles(fileNames: ["One", "Two", "Three"], on: backgroundQueue)
         
         // Issue an empty closure on backgroundQueue and wait for it to be executed
         backgroundQueue.sync {}
         
-        XCTAssertEqual(loader.preloadedFiles, ["One", "Two", "Three"])
+        XCTAssertEqual(fileLoader.preloadedFiles, ["One", "Two", "Three"])
     }
     
-    /// Testing a notification
+    /// Test that a notification fires with the expected result
     func testNotification() {
         
         let fileLoader = FileLoader()
@@ -160,12 +162,25 @@ class MyCodeTests: XCTestCase {
         let _ = expectation(forNotification: .fileLoaded, object: fileLoader
             , handler: { notification -> Bool in
                 //test the values of userInfo
-                notification.userInfo?["successCode"] as? Int == 1
+            notification.userInfo?["successCode"] as? FileOperationResult == FileOperationResult.success
         })
         fileLoader.loadFile("myFile")
         
         waitForExpectations(timeout: 0.1, handler: nil)
     }
+    
+    func testAsyncFunction() async {
+        
+        let fileLoader = FileLoader()
+        
+        do {
+            try await fileLoader.loadFilesAsync(["1","2","3","4"])
+            XCTAssertEqual(fileLoader.preloadedFiles, ["1", "2", "3", "4"])
+        } catch {
+            XCTFail()
+        }
+    }
+
     
     /// Testing a delegate
     func testMyClassMessageReceived() {
